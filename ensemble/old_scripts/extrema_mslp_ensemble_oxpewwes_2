@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# Find the extrema from the regridded data
+BASE_PATH=$HOME/wah_data/Batch48/1985/hadam3p_eu_ins0_1985_1_008476005_0/ga.pd
+IN_DIR=$BASE_PATH/field8
+OUT_DIR=$BASE_PATH/field8/track_out/L$1
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+LEV=$1              # regrid level
+EX_LEV=$2           # extrema detection level
+LS_LEV=$3           # large scale feature level
+P_MODE=0            # parent regrid mode
+GRID_FILE=./grids/wah_mesh_EU"_L"$LEV
+
+RGD_FNAME=ins0ga.pdi5dec_pdi6mar_field8_L$LEV"".rgd
+GPH_FNAME=ins0ga.pdi5dec_pdi6mar_field1.nc
+
+RGD_FILE=$OUT_DIR"/"$RGD_FNAME
+GPH_FILE=$BASE_PATH"/field1"/$GPH_FNAME
+    
+EX_FILE=${RGD_FILE/"_L"$LEV".rgd"/"_L"$LEV"_E"$EX_LEV"_S"$LS_LEV".ex"}
+# 
+# extrema locating arguments
+EX_ARGS='minima_largescale('$LS_LEV',100,-200)'
+GP_ARGS='geostrophic('$GPH_FILE',field_1,0)' # index 2 is 500 hPa var129
+# 
+# output path
+cmd="$EXE_PATH/extrema -i $RGD_FILE -o $EX_FILE -m $GRID_FILE -l $EX_LEV -a 0 --method $EX_ARGS --steering $GP_ARGS -T"
+$cmd

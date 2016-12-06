@@ -1,0 +1,1 @@
+cdo setmisstoc,0.0 -abs -mul euds00ag_wah_50km.nc wah_eu_lsm_0.44.nc euds00ag_wah_50km_lsm.nc

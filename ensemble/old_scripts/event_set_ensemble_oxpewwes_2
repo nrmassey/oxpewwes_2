@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# Build the event footprints from the tracks and input data
+BASE_PATH=$HOME/wah_data/Batch48/1985/hadam3p_eu_ins0_1985_1_008476005_0/ga.pd
+ANALYSIS_PATH=$HOME/google_drive/Coding/track_analysis/analyse_oxpewwes_2
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+# stash names
+MSLP_STASH=field8
+WIND_STASH=field50
+PRECIP_STASH=field90
+
+MSLP_PATH=$BASE_PATH/$MSLP_STASH
+WIND_PATH=$BASE_PATH/$WIND_STASH
+PRECIP_PATH=$BASE_PATH/$PRECIP_STASH
+
+# Replace with population when file is generated
+POP_FILE=$ANALYSIS_PATH/population/euds00ag_wah_50km_final.nc
+REMAP_FILE=$ANALYSIS_PATH/max_to_peak_wind.nc
+LSM_FILE=$ANALYSIS_PATH/wah_eu_lsm_0.44.nc
+
+MSLP_VNAME=field_8
+WIND_VNAME=field_50
+PRECIP_VNAME=field_90
+POP_VNAME=population
+LSM_VNAME=lsm
+
+LEV=7
+EX=4
+SC=3
+
+# build the file names
+TRK_FNAME=ins0ga.pdi5dec_pdi6mar_$MSLP_STASH"_L"$LEV"_E"$EX"_S"$SC".trk"
+TRK_FILE=$MSLP_PATH""/track_out/"/L"$LEV"/"$TRK_FNAME
+EVENT_FILE=$BASE_PATH"/events/"oxfaga
+
+MSLP_FILE=$MSLP_PATH"/"ins0ga.pdi5dec_pdi6mar_$MSLP_STASH".nc"
+WIND_FILE=$WIND_PATH"/"ins0ga.pdi5dec_pdi6mar_$WIND_STASH".nc"
+PRECIP_FILE=$PRECIP_PATH"/"ins0ga.pdi5dec_pdi6mar_$PRECIP_STASH"_6hi.nc"
+
+# run the app
+cmd="$EXE_PATH/event_set -m $MSLP_FILE -M $MSLP_VNAME -w $WIND_FILE -W $WIND_VNAME \
+	 -p $PRECIP_FILE -P $PRECIP_VNAME -q $POP_FILE -Q $POP_VNAME \
+	 -e $REMAP_FILE -l $LSM_FILE -L $LSM_VNAME \
+	 -t 7 -r 1000.0 -i $TRK_FILE -o $EVENT_FILE"
+echo $cmd
+$cmd

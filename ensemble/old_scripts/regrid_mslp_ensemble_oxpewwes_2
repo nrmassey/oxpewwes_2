@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+# regrid the precis data to the triangular mesh
+BASE_PATH=$HOME/wah_data/Batch48/1985/hadam3p_eu_ins0_1985_1_008476005_0/ga.pd
+IN_DIR=$BASE_PATH/field8/
+OUT_DIR=$BASE_PATH/field8/track_out/L$1
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+N_PTS=0
+LEV=$1
+PMODE=0
+GRID_FILE=./grids/wah_mesh_EU"_L"$LEV
+NC_VAR=field_8
+
+IN_FNAME=ins0ga.pdi5dec_pdi6mar_field8.nc
+OUT_FNAME=${IN_FNAME/.nc/_L$LEV.rgd}
+IN_FILE=$IN_DIR"/"$IN_FNAME
+OUT_FILE=$OUT_DIR"/"$OUT_FNAME
+cmd="$EXE_PATH/regrid -i $IN_FILE -v $NC_VAR -m $GRID_FILE -o $OUT_FILE -p $PMODE"
+$cmd

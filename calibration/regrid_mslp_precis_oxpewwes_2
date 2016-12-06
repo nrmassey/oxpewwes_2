@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# regrid the precis data to the triangular mesh
+BASE_PATH=$HOME/precis_output/oxfag
+IN_DIR=$BASE_PATH/16222.inst/cat_six_hour_seas
+OUT_DIR=$BASE_PATH/16222.inst/track_out/L$1
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+N_PTS=0
+LEV=$1
+PMODE=0
+GRID_FILE=./grids/precis_mesh_EU"_L"$LEV
+NC_VAR=p
+STASH=16222.inst
+
+for yr in {1989..2008};
+do
+    let yr1=$yr+1
+    if [ $yr -eq "1989" ]; then
+        IN_FNAME="oxfaga.dec$yr"."apr$yr1"."$STASH"_6hr.nc
+    else
+        IN_FNAME="oxfaga.sep$yr"."apr$yr1"."$STASH"_6hr.nc
+    fi
+    OUT_FNAME=${IN_FNAME/.nc/_L$LEV.rgd}
+    IN_FILE=$IN_DIR"/"$IN_FNAME
+    OUT_FILE=$OUT_DIR"/"$OUT_FNAME
+    cmd="$EXE_PATH/regrid -i $IN_FILE -v $NC_VAR -m $GRID_FILE -o $OUT_FILE -p $PMODE"
+    $cmd
+done

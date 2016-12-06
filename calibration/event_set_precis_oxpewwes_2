@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+# Build the event footprints from the tracks and input data
+BASE_PATH=$HOME/precis_output/oxfag
+ANALYSIS_PATH=$HOME/google_drive/Coding/track_analysis/analyse_oxpewwes_2
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+# stash names
+MSLP_STASH=16222.inst
+WIND_STASH=03249.max
+PRECIP_STASH=05216
+
+MSLP_PATH=$BASE_PATH/$MSLP_STASH""/cat_six_hour_seas
+WIND_PATH=$BASE_PATH/$WIND_STASH""/cat_six_hour_seas
+PRECIP_PATH=$BASE_PATH/$PRECIP_STASH""/cat_six_hour_seas
+
+# Replace with population when file is generated
+POP_FILE=$ANALYSIS_PATH/population/euds00ag_wah_50km_final.nc
+REMAP_FILE=$ANALYSIS_PATH/max_to_peak_wind.nc
+LSM_FILE=$ANALYSIS_PATH/wah_eu_lsm_0.44.nc
+
+MSLP_VNAME=p
+WIND_VNAME=wind
+PRECIP_VNAME=precip
+POP_VNAME=population
+LSM_VNAME=lsm
+
+LEV=7
+EX=4
+SC=3
+
+for yr in {1989..2008};
+#for yr in 1989;
+do
+    let yr1=$yr+1
+    if [ $yr -eq "1989" ]; then
+        STUB="oxfaga.dec$yr"."apr$yr1"
+    else
+        STUB="oxfaga.sep$yr"."apr$yr1"
+    fi
+    
+    # build the file names
+    TRK_FNAME=$STUB"."$MSLP_STASH""_6hr"_L"$LEV"_E"$EX"_S"$SC".trk"
+    TRK_FILE=${MSLP_PATH/cat_six_hour_seas/track_out}"/L"$LEV"/"$TRK_FNAME
+    EVENT_PATH=$BASE_PATH"/events/"$yr"_"$yr1
+    EVENT_FILE=$EVENT_PATH"/"oxfaga
+
+    # create output if necessary
+    if [ ! -d $EVENT_PATH ]; then
+        mkdir $EVENT_PATH
+    fi
+    
+    MSLP_FILE=$MSLP_PATH"/"$STUB"."$MSLP_STASH"_6hr.nc"
+    WIND_FILE=$WIND_PATH"/"$STUB"."$WIND_STASH"_6hr.nc"
+    PRECIP_FILE=$PRECIP_PATH"/"$STUB"."$PRECIP_STASH"_6hri.nc"
+    
+    # run the app
+    cmd="$EXE_PATH/event_set -m $MSLP_FILE -M $MSLP_VNAME -w $WIND_FILE -W $WIND_VNAME \
+         -p $PRECIP_FILE -P $PRECIP_VNAME -q $POP_FILE -Q $POP_VNAME \
+         -e $REMAP_FILE -l $LSM_FILE -L $LSM_VNAME \
+         -t 7 -r 1000.0 -i $TRK_FILE -o $EVENT_FILE"
+    echo $cmd
+    $cmd
+
+done

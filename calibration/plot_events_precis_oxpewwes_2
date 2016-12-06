@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+# Build the event footprints from the tracks and input data
+BASE_PATH=$HOME/precis_output/oxfag
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+# stash names
+MSLP_STASH=16222.inst
+
+# minimum total loss value
+MIN_LOSS=1000.0
+
+LEV=7
+EX=4
+SC=3
+
+for yr in {1989..2008};
+#for yr in 1989;
+do
+    let yr1=$yr+1
+    if [ $yr -eq "1989" ]; then
+        STUB="oxfaga.dec$yr"."apr$yr1"
+    else
+        STUB="oxfaga.sep$yr"."apr$yr1"
+    fi
+    
+    # build the file names
+    TRK_FNAME=$STUB"."$MSLP_STASH""_6hr"_L"$LEV"_E"$EX"_S"$SC".trk"
+    EVENT_PATH=$BASE_PATH"/events/"$yr"_"$yr1
+    
+    if [ ! -d $EVENT_PATH"/images/" ]; then
+        mkdir $EVENT_PATH"/images/"
+    fi
+    
+    # run the app
+    for EVT in $EVENT_PATH""/*.nc
+    do
+        ../plot/plot_event_oxpewwes_2.py -i $EVT -o ${EVT/.nc/.png} -l $MIN_LOSS
+        if [ -e ${EVT/.nc/.png} ]; then
+            mv ${EVT/.nc/.png} $EVENT_PATH"/images/"
+        fi
+    done
+done

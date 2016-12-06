@@ -1,0 +1,49 @@
+#! /usr/bin/env bash
+# test the routines by running on a single file
+
+BASE_PATH=/Users/Neil/wah_data/Batch43
+FNAME_PATH=$BASE_PATH/ot8dga.pdi5dec.nc
+MSLP_VAR=field8
+WIND_VAR=field49_1
+PRECIP_VAR=field90
+
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+LEV=7
+EX_LEV=4
+LS_LEV=3
+
+GRID_FILE=./grids/test_grid_L$LEV
+
+# generate the grid
+#$EXE_PATH/gen_grid -f $FNAME_PATH -v $MSLP_VAR -o $GRID_FILE -I 0 -l $LEV
+
+# regrid the data
+RGD_FNAME=${FNAME_PATH/.nc/.rgd}
+#$EXE_PATH/regrid -i $FNAME_PATH -v $MSLP_VAR -m $GRID_FILE -o $RGD_FNAME -p 0
+
+# extrema locator
+EX_ARGS='minima_largescale('$LS_LEV',100,-200)'
+ST_ARGS='mslp_wind('$FNAME_PATH','$MSLP_VAR')'
+echo $ST_ARGS
+EX_FNAME=${FNAME_PATH/.nc/.ex}
+#$EXE_PATH/extrema -i $RGD_FNAME -o $EX_FNAME -m $GRID_FILE -l $EX_LEV -a 0 --method $EX_ARGS --steering $ST_ARGS -T
+
+# track locator
+TRK_ARGS="-r 1000 -f 6 -v 10 -s 0 -T"
+TRK_FNAME=${FNAME_PATH/.nc/.trk}
+#$EXE_PATH/track -i $EX_FNAME -o $TRK_FNAME $TRK_ARGS
+
+# event set
+EVT_FNAME=$BASE_PATH/events/ot8dga
+ANALYSIS_PATH=$HOME/google_drive/Coding/track_analysis/analyse_oxpewwes_2
+POP_FILE=$ANALYSIS_PATH/population/euds00ag_wah_50km_final.nc
+REMAP_FILE=$ANALYSIS_PATH/max_to_peak_wind.nc
+LSM_FILE=$ANALYSIS_PATH/wah_eu_lsm_0.44.nc
+POP_VNAME=population
+LSM_VNAME=lsm
+
+$EXE_PATH/event_set -m $FNAME_PATH -M $MSLP_VAR -w $FNAME_PATH -W $WIND_VAR \
+         -p $FNAME_PATH -P $PRECIP_VAR -q $POP_FILE -Q $POP_VNAME \
+         -e $REMAP_FILE -l $LSM_FILE -L $LSM_VNAME \
+         -t 2 -r 1000.0 -i $TRK_FNAME -o $EVT_FNAME

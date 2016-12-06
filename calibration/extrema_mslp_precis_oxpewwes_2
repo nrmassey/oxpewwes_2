@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# Find the extrema from the regridded data
+BASE_PATH=$HOME/precis_output/oxfag
+IN_DIR=$BASE_PATH/16222.inst/cat_six_hour_seas
+OUT_DIR=$BASE_PATH/16222.inst/track_out/L$1
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+LEV=$1              # regrid level
+EX_LEV=$2           # extrema detection level
+LS_LEV=$3           # large scale feature level
+P_MODE=0           # parent regrid mode
+GRID_FILE=./grids/precis_mesh_EU"_L"$LEV
+NC_VAR=p
+STASH=16222.inst
+GP_STASH=16202
+
+for yr in {1989..2008};
+do
+    let yr1=$yr+1
+    if [ $yr -eq "1989" ]; then
+        RGD_FNAME="oxfaga.dec$yr"."apr$yr1"."$STASH"_6hr"_L"$LEV".rgd"
+        GPH_FNAME="oxfaga.dec$yr"."apr$yr1"."$GP_STASH"_6hri.nc
+    else
+        RGD_FNAME="oxfaga.sep$yr"."apr$yr1"."$STASH"_6hr"_L"$LEV".rgd"
+        GPH_FNAME="oxfaga.sep$yr"."apr$yr1"."$GP_STASH"_6hri.nc
+    fi
+    
+
+    RGD_FILE=$OUT_DIR"/"$RGD_FNAME
+    GPH_FILE=$BASE_PATH"/"$GP_STASH"/cat_six_hour_seas"/$GPH_FNAME
+    
+    EX_FILE=${RGD_FILE/"_L"$LEV".rgd"/"_L"$LEV"_E"$EX_LEV"_S"$LS_LEV".ex"}
+# 
+    # extrema locating arguments
+    EX_ARGS='minima_largescale('$LS_LEV',100,-200)'
+    GP_ARGS='geostrophic('$GPH_FILE',ht,2)' # index 2 is 500 hPa var129
+# 
+    # output path
+    cmd="$EXE_PATH/extrema -i $RGD_FILE -o $EX_FILE -m $GRID_FILE -l $EX_LEV -a 0 --method $EX_ARGS --steering $GP_ARGS -T"
+    $cmd
+done

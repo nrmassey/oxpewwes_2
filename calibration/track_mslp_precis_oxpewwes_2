@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# track the storms from the extrema
+BASE_PATH=$HOME/precis_output/oxfag
+IN_DIR=$BASE_PATH/16222.inst/cat_six_hour_seas
+OUT_DIR=$BASE_PATH/16222.inst/track_out/L$1
+EXE_PATH=$HOME/Coding/tri_tracker/exe
+
+
+#$1             # regrid level
+#$2             # extrema detection level
+#$3             # large scale feature level
+#$4             # number of optimisation steps
+
+
+LEV=$1              # regrid level
+EX_LEV=$2           # extrema detection level
+LS_LEV=$3           # large scale feature level
+PMODE=0
+OPT_STEPS=$4        # number of optimisation steps
+GRID_FILE=./grids/precis_mesh_EU"_L"$LEV
+STASH=16222.inst
+GP_STASH=16202
+TRK_ARGS="-r 1200 -f 6 -v 10 -s $OPT_STEPS -T"
+
+for yr in {1989..2008};
+#for yr in 1989;
+do
+    let yr1=$yr+1
+    if [ $yr -eq "1989" ]; then
+        RGD_FNAME="oxfaga.dec$yr"."apr$yr1"."$STASH"_6hr"_L"$LEV".rgd"
+        GPH_FNAME="oxfaga.dec$yr"."apr$yr1"."$GP_STASH"_6hri.nc
+    else
+        RGD_FNAME="oxfaga.sep$yr"."apr$yr1"."$STASH"_6hr"_L"$LEV".rgd"
+        GPH_FNAME="oxfaga.sep$yr"."apr$yr1"."$GP_STASH"_6hri.nc
+    fi
+
+    RGD_FILE=$OUT_DIR"/"$RGD_FNAME
+    EX_FILE=${RGD_FILE/"_L"$LEV".rgd"/"_L"$LEV"_E"$EX_LEV"_S"$LS_LEV".ex"}
+    TRK_FILE=${EX_FILE/".ex"/".trk"}
+    cmd="$EXE_PATH/track -i $EX_FILE -o $TRK_FILE $TRK_ARGS"
+    $cmd
+done
+
