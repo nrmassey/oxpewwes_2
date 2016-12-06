@@ -84,12 +84,12 @@ def concatenate(u, field_list, output_dir):
                 mon_files_1.append(fname[0])
                 # fix the record dimension using ncks
                 cmd = ["ncks", "-O", "--mk_rec_dmn", "time", fname[0], "-o", fname[0]]
-#                subprocess.call(cmd)
+                subprocess.call(cmd)
         # concat together using ncrcat
         cmd = ["ncrcat"]
         cmd.extend(mon_files_1)
         cmd.append(output_fname_1)
-#        subprocess.call(cmd)
+        subprocess.call(cmd)
         
         # do the SON file          
         if os.path.exists(output_fname_2):
@@ -102,12 +102,12 @@ def concatenate(u, field_list, output_dir):
                 mon_files_2.append(fname[0])
                 # fix the record dimension using ncks
                 cmd = ["ncks", "-O", "--mk_rec_dmn", "time", fname[0], "-o", fname[0]]
-#                subprocess.call(cmd)
+                subprocess.call(cmd)
         # concat together using ncrcat
         cmd = ["ncrcat"]
         cmd.extend(mon_files_2)
         cmd.append(output_fname_2)
-#        subprocess.call(cmd)
+        subprocess.call(cmd)
     return output_fname_1, output_fname_2, output_path
 
 ###############################################################################
@@ -127,9 +127,9 @@ def regrid(DJFMA_fname, SON_fname, LEV):
     
     # run the command - DJFMA then SON
     cmd = [EXE_PATH, "-i", DJFMA_fname, "-v", NC_VAR, "-m", GRID_FILE, "-o", DJFMA_regrid_fname, "-p", PMODE]
-#    subprocess.call(cmd)
+    subprocess.call(cmd)
     cmd = [EXE_PATH, "-i", SON_fname, "-v", NC_VAR, "-m", GRID_FILE, "-o", SON_regrid_fname, "-p", PMODE]
-#    subprocess.call(cmd)
+    subprocess.call(cmd)
     
     return DJFMA_regrid_fname, SON_regrid_fname
 
@@ -160,13 +160,13 @@ def extrema(DJFMA_regrid_name, SON_regrid_name, LEV, EX_LEV, LS_LEV):
     cmd = [EXE_PATH, "-i", DJFMA_regrid_name, "-o", EX_DJFMA_fname, "-m", GRID_FILE, \
            "-l", str(EX_LEV), "-a", str(0), "--method", EX_DJFMA_args, \
            "--steering", GP_DJFMA_args]
-#    subprocess.call(cmd)
+    subprocess.call(cmd)
     
     # SON
     cmd = [EXE_PATH, "-i", SON_regrid_name, "-o", EX_SON_fname, "-m", GRID_FILE, \
            "-l", str(EX_LEV), "-a", str(0), "--method", EX_SON_args, \
            "--steering", GP_SON_args]
-#    subprocess.call(cmd)
+    subprocess.call(cmd)
     
     return EX_DJFMA_fname, EX_SON_fname
 
@@ -184,11 +184,11 @@ def track(EX_DJFMA_fname, EX_SON_fname):
     TRK_ARGS = ["-r", "1000", "-f", "6", "-v", "10", "-s", "2"]
     cmd = [EXE_PATH, "-i", EX_DJFMA_fname, "-o", TRK_DJFMA_fname]
     cmd.extend(TRK_ARGS)
-#    subprocess.call(cmd)
+    subprocess.call(cmd)
     
     cmd = [EXE_PATH, "-i", EX_SON_fname, "-o", TRK_SON_fname]
     cmd.extend(TRK_ARGS)
-#    subprocess.call(cmd)
+    subprocess.call(cmd)
 
     return TRK_DJFMA_fname, TRK_SON_fname
 
@@ -197,6 +197,7 @@ def track(EX_DJFMA_fname, EX_SON_fname):
 def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, year):
     # Build the event footprints from the tracks and input data
     EXE_PATH=os.path.expanduser("~/Coding/tri_tracker/exe/event_set")
+    output_event_path = "/Volumes/SSD2/oxpewwes_2/ensemble/events/"
 
     # netcdf variable names
     MSLP_VNAME = "field8"
@@ -209,7 +210,6 @@ def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, y
     # get the umid from the track file
     umid = DJFMA_track_name.split("/")[-1][0:4]
     output_path = "/".join(DJFMA_track_name.split("/")[0:-3])
-    output_event_path = "/Volumes/SSD2/oxpewwes_2/ensemble/events/"
     
     # get the static input files for the loss / wind / population model
     POP_FILE=os.path.abspath("../population/euds00ag_wah_50km_final.nc")
@@ -286,7 +286,10 @@ if __name__ == "__main__":
                   ["ga.pd", "field8"]]
     
     # create a temporary directory - do we have permission?
-    temp_dir = tempfile.mkdtemp()
+    
+    temp_dir = os.path.expanduser("~/tmp")
+    if not os.path.exists(temp_dir):
+        os.mkdir(temp_dir)
     
     # set the output directory
     output_dir = "/Users/neil/wah_data/"
@@ -301,8 +304,7 @@ if __name__ == "__main__":
         urls = get_urls_for_batch(b)
         for u in urls:
             # extract the data
-            #extract(u, field_list, output_dir, temp_dir, n_valid)
-            pass
+            extract(u, field_list, output_dir, temp_dir, n_valid)
         # concatenate the Dec->Apr files and the Sep->Nov files
         u = urls[0]
         DJFMA_fname, SON_fname, output_path = concatenate(u, field_list, output_dir)
@@ -318,4 +320,5 @@ if __name__ == "__main__":
     
     # clean up the temporary directory
     shutil.rmtree(temp_dir)
-
+    # remove the output path (this is not the same as the event set output path)
+    shutil.rmtree(output_path)
