@@ -10,7 +10,6 @@
 
 from extract import *
 import shutil
-from cdo import *
 import glob
 import subprocess, os
 
@@ -65,8 +64,6 @@ def concatenate(u, field_list, output_dir):
     mon_set_1 = ['dec', 'jan', 'feb', 'mar', 'apr']
     # months for second file
     mon_set_2 = ['sep', 'oct', 'nov']
-    # cdo instance
-    cdo = Cdo()
     # loop over the field_list
     for f in field_list:
         this_path = output_path + "/" + f[0] + "/" + f[1]
@@ -127,6 +124,7 @@ def regrid(DJFMA_fname, SON_fname, LEV):
     
     # run the command - DJFMA then SON
     cmd = [EXE_PATH, "-i", DJFMA_fname, "-v", NC_VAR, "-m", GRID_FILE, "-o", DJFMA_regrid_fname, "-p", PMODE]
+    print " ".join(cmd)
     subprocess.call(cmd)
     cmd = [EXE_PATH, "-i", SON_fname, "-v", NC_VAR, "-m", GRID_FILE, "-o", SON_regrid_fname, "-p", PMODE]
     subprocess.call(cmd)
@@ -197,8 +195,8 @@ def track(EX_DJFMA_fname, EX_SON_fname):
 def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, year):
     # Build the event footprints from the tracks and input data
     EXE_PATH=os.path.expanduser("~/Coding/tri_tracker/exe/event_set")
-    output_event_path = "/Volumes/SSD2/oxpewwes_2/ensemble/events/"
-
+    output_event_path = os.path.expanduser("~/Coding/oxpewwes_2_results/ensemble/events/1985_1986/hadam3p_eu_ins0_1985_1_008476005_0/")
+    
     # netcdf variable names
     MSLP_VNAME = "field8"
     WIND_VNAME = "field50"
@@ -238,8 +236,9 @@ def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, y
                      "-p", PRECIP_DJFMA, "-P", PRECIP_VNAME,
                      "-q", POP_FILE, "-Q", POP_VNAME,
                      "-e", REMAP_FILE, "-l", LSM_FILE, "-L", LSM_VNAME,
-                     "-t", "7", "-r", "1000.0", "-i",
+                     "-t", "7", "-r", "1200.0", "-i",
                      DJFMA_track_name, "-o", EVENT_umid]
+    print " ".join(cmd)
     subprocess.call(cmd)
     
     # now do the SON files
@@ -256,6 +255,7 @@ def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, y
                      "-e", REMAP_FILE, "-l", LSM_FILE, "-L", LSM_VNAME,
                      "-t", "7", "-r", "1000.0", "-i",
                      SON_track_name, "-o", EVENT_umid]
+    print " ".join(cmd)
     subprocess.call(cmd)
 
 ###############################################################################
@@ -292,7 +292,7 @@ if __name__ == "__main__":
         os.mkdir(temp_dir)
     
     # set the output directory
-    output_dir = "/Users/neil/wah_data/"
+    output_dir = os.path.expanduser("~/wah_data/Batch48")
     n_valid = 8
 
     # get the batch list
@@ -304,8 +304,9 @@ if __name__ == "__main__":
         urls = get_urls_for_batch(b)
         for u in urls:
             # extract the data
-            extract(u, field_list, output_dir, temp_dir, n_valid)
-        # concatenate the Dec->Apr files and the Sep->Nov files
+#            extract(u, field_list, output_dir, temp_dir, n_valid)
+			pass
+		#  concatenate the Dec->Apr files and the Sep->Nov files
         u = urls[0]
         DJFMA_fname, SON_fname, output_path = concatenate(u, field_list, output_dir)
         # do the regridding
@@ -321,4 +322,4 @@ if __name__ == "__main__":
     # clean up the temporary directory
     shutil.rmtree(temp_dir)
     # remove the output path (this is not the same as the event set output path)
-    shutil.rmtree(output_path)
+#    shutil.rmtree(output_dir)

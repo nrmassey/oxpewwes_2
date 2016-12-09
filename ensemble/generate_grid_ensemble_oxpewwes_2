@@ -2,14 +2,14 @@
 
 # generate the  grid for the PRECIS regional model run from 1989->2008
 MSLP_DIR=$HOME/wah_data/Batch48/1985/hadam3p_eu_ins0_1985_1_008476005_0/ga.pd/field8
-MSLP_FNAME=ins0ga.pdi5dec_pdi6mar_field8.nc
-IN_FILE=$MSLP_DIR/"/"$MSLP_FNAME
+MSLP_FNAME=ins0_field8_DJFMA.nc
+IN_FILE=$MSLP_DIR"/"$MSLP_FNAME
 
 EXE_PATH=$HOME/Coding/tri_tracker/exe
 
 LEV=$1
 GRID_FILE=./grids/wah_mesh_EU_L""$LEV
-NC_VAR=field_8
+NC_VAR=field8
 ITS=0
 
 cmd="$EXE_PATH/gen_grid -f $IN_FILE -v $NC_VAR -o $GRID_FILE -I $ITS -l $LEV"
