@@ -192,10 +192,20 @@ def track(EX_DJFMA_fname, EX_SON_fname):
 
 ###############################################################################
 
+def get_event_path(boinc, year):
+    year = int(year)
+    output_event_path = os.path.expanduser("~/Coding/oxpewwes_2_results/ensemble/events/")
+    output_event_path += str(year) + "_" + str(year+1) + "/"
+    output_event_path += boinc
+    return output_event_path
+
+###############################################################################
+
+
 def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, year):
     # Build the event footprints from the tracks and input data
     EXE_PATH=os.path.expanduser("~/Coding/tri_tracker/exe/event_set")
-    output_event_path = os.path.expanduser("~/Coding/oxpewwes_2_results/ensemble/events/1985_1986/hadam3p_eu_ins0_1985_1_008476005_0/")
+    output_event_path = os.path.expanduser("~/Coding/oxpewwes_2_results/ensemble/events/")
     
     # netcdf variable names
     MSLP_VNAME = "field8"
@@ -224,12 +234,12 @@ def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, y
         os.makedirs(event_path)
         
     EVENT_umid = event_path + umid
-        
+    print EVENT_umid
+    
     # get the dynamic files - do the DJFMA files first
     MSLP_DJFMA = output_path + "/ga.pd/field8/" + umid + "_field8_DJFMA.nc"
     WIND_DJFMA = output_path + "/ga.pd/field50/" + umid + "_field50_DJFMA.nc"
     PRECIP_DJFMA = output_path + "/ga.pd/field90/" + umid + "_field90_DJFMA.nc"
-
 
     cmd = [EXE_PATH, "-m", MSLP_DJFMA, "-M", MSLP_VNAME,
                      "-w", WIND_DJFMA, "-W", WIND_VNAME,
@@ -237,7 +247,7 @@ def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, y
                      "-q", POP_FILE, "-Q", POP_VNAME,
                      "-e", REMAP_FILE, "-l", LSM_FILE, "-L", LSM_VNAME,
                      "-t", "7", "-r", "1200.0", "-i",
-                     DJFMA_track_name, "-o", EVENT_umid]
+                     DJFMA_track_name, "-o", EVENT_umid, "-F"]
     print " ".join(cmd)
     subprocess.call(cmd)
     
@@ -254,7 +264,7 @@ def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, y
                      "-q", POP_FILE, "-Q", POP_VNAME,
                      "-e", REMAP_FILE, "-l", LSM_FILE, "-L", LSM_VNAME,
                      "-t", "7", "-r", "1000.0", "-i",
-                     SON_track_name, "-o", EVENT_umid]
+                     SON_track_name, "-o", EVENT_umid, "-F"]
     print " ".join(cmd)
     subprocess.call(cmd)
 
@@ -302,24 +312,34 @@ if __name__ == "__main__":
         # build the urls for the batch - we want files 1->5 (Dec->Apr)
         # and files 10->12 (Sep->Oct)
         urls = get_urls_for_batch(b)
-        for u in urls:
-            # extract the data
-#            extract(u, field_list, output_dir, temp_dir, n_valid)
-			pass
-		#  concatenate the Dec->Apr files and the Sep->Nov files
         u = urls[0]
-        DJFMA_fname, SON_fname, output_path = concatenate(u, field_list, output_dir)
-        # do the regridding
-        DJFMA_regrid_name, SON_regrid_name = regrid(DJFMA_fname, SON_fname, LEV)
-        # find the extrema
-        DJFMA_extrema_name, SON_extrema_name = extrema(DJFMA_regrid_name, SON_regrid_name, LEV, EX_LEV, LS_LEV)
-        # find the tracks
-        DJFMA_track_name, SON_track_name = track(DJFMA_extrema_name, SON_extrema_name)
-        # find the events, need the year and umid to form the filename
         umid, boinc, year = get_umid_boinc_year(u)
-        events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, year)
+        event_path = get_event_path(boinc, year)
+        if os.path.exists(event_path):
+            continue
+        try:
+            for u in urls:
+                # extract the data
+                extract(u, field_list, output_dir, temp_dir, n_valid)
+            #  concatenate the Dec->Apr files and the Sep->Nov files
+            DJFMA_fname, SON_fname, output_path = concatenate(u, field_list, output_dir)
+            # do the regridding
+            DJFMA_regrid_name, SON_regrid_name = regrid(DJFMA_fname, SON_fname, LEV)
+            # find the extrema
+            DJFMA_extrema_name, SON_extrema_name = extrema(DJFMA_regrid_name, SON_regrid_name, LEV, EX_LEV, LS_LEV)
+            # find the tracks
+            DJFMA_track_name, SON_track_name = track(DJFMA_extrema_name, SON_extrema_name)
+            # find the events, need the year and umid to form the filename
+            events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, year)
+        except:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+            if os.path.exists(output_dir):
+                shutil.rmtree(output_dir)
     
     # clean up the temporary directory
-    shutil.rmtree(temp_dir)
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
     # remove the output path (this is not the same as the event set output path)
-#    shutil.rmtree(output_dir)
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
