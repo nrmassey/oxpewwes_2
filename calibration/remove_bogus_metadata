@@ -1,0 +1,9 @@
+for yr in *;
+do
+    for e in $yr/*;
+    do
+        ncatted -O -a maximum_power,,d,, $e
+        ncatted -O -a maximum,,d,, $e
+        ncatted -O -a minimum,,d,, $e
+    done
+done

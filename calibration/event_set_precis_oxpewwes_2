@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Build the event footprints from the tracks and input data
-BASE_PATH=$HOME/precis_output/oxfag
-ANALYSIS_PATH=$HOME/google_drive/Coding/track_analysis/analyse_oxpewwes_2
+BASE_PATH=/Volumes/ECI_Backup/precis_output/oxfag
+ANALYSIS_PATH=$HOME/Coding/oxpewwes_2
 EXE_PATH=$HOME/Coding/tri_tracker/exe
 
 # stash names
@@ -58,7 +58,7 @@ do
     cmd="$EXE_PATH/event_set -m $MSLP_FILE -M $MSLP_VNAME -w $WIND_FILE -W $WIND_VNAME \
          -p $PRECIP_FILE -P $PRECIP_VNAME -q $POP_FILE -Q $POP_VNAME \
          -e $REMAP_FILE -l $LSM_FILE -L $LSM_VNAME \
-         -t 7 -r 1000.0 -i $TRK_FILE -o $EVENT_FILE"
+         -t 7 -r 1200.0 -F -i $TRK_FILE -o $EVENT_FILE"
     echo $cmd
     $cmd
 

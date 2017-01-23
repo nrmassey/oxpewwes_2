@@ -19,7 +19,7 @@ import matplotlib
 import sys, os, getopt
 import cartopy.crs as ccrs
 import numpy
-from scipy.io.netcdf import *
+from netCDF4 import Dataset
 
 ###############################################################################
 
@@ -80,18 +80,20 @@ def plot_track(sp0, track_lons, track_lats):
 
 ###############################################################################
 
-def load_scaled_data(nc_fh, var_name):
+def load_scaled_data(nc_fh, var_name, index):
     # load data that has been packed to a byte or short and scaled
     var = nc_fh.variables[var_name]
     # get the scale factor and offset
-    sf = var._attributes["scale_factor"]
-    off = var._attributes["add_offset"]
+    sf = var.scale_factor
+    off = var.add_offset
     # get the missing value
-    mv = var._attributes["_FillValue"]
+    mv = var._FillValue
     # get the data and mask
-    D = numpy.ma.masked_equal(var[:], mv)
-    # scale and return
-    SD = D * sf + off
+    D = numpy.ma.masked_equal(var[index], mv)
+    # scale and return - don't need to scale with netCDF4 libraries
+#    SD = D * sf + off
+#    print var_name, off, sf, SD.shape, numpy.min(SD), numpy.max(SD)
+    SD = D
     return SD
 
 ###############################################################################
@@ -107,44 +109,39 @@ if __name__ == "__main__":
     input_file = ""
     output_file = ""
     # get the input and output filenames
-    opts, args = getopt.getopt(sys.argv[1:], 'i:o:l:', 
-                               ['input=', 'output=', 'min_loss='])
+    opts, args = getopt.getopt(sys.argv[1:], 'i:o:d:', 
+                               ['input=', 'output=', 'index='])
 
     for opt, val in opts:
         if opt in ['--input', '-i']:
             input_file = val
         if opt in ['--output', '-o']:
             output_file = val
-        if opt in ['--min_loss', '-l']:
-            min_loss = float(val)
+        if opt in ['--index', '-d']:
+            index = int(val)
 
     if input_file == "" or output_file == "":
-        print " Usage : plot_event_oxpewwes_2 -i input -o output "
+        print " Usage : plot_event_oxpewwes_2 -i input -o output -d index"
         sys.exit()
 
     # load the input file
-    fh = netcdf_file(input_file, 'r', mmap=False)
+    fh = Dataset(input_file, 'r', format="NETCDF4")
     # get the pole latitude and longitude from the "rotated_pole" variable
     rot_grid_var = fh.variables["rotated_pole"]
-    rot_lonp = float(rot_grid_var._attributes["grid_north_pole_longitude"])
-    rot_latp = float(rot_grid_var._attributes["grid_north_pole_latitude"])
+    rot_lonp = float(rot_grid_var.grid_north_pole_longitude)
+    rot_latp = float(rot_grid_var.grid_north_pole_latitude)
     
     # get the data
-    mslp_data = load_scaled_data(fh, "mslp") * 0.01
-    gust_data = load_scaled_data(fh, "wind_gust")
-    precip_data = load_scaled_data(fh, "precip") * 60.0 * 60.0  # convert to mm/hr
-    loss_data = load_scaled_data(fh, "loss")
+    mslp_data = load_scaled_data(fh, "mslp", index) * 0.01
+    gust_data = load_scaled_data(fh, "wind_gust", index)
+    precip_data = load_scaled_data(fh, "precip", index) * 60.0 * 60.0  # convert to mm/hr
+    loss_data = load_scaled_data(fh, "loss", index)
     lons = fh.variables["longitude"][:]
     lats = fh.variables["latitude"][:]
-    
-    # get the loss amount
-    loss_val = float(fh.variables["loss"]._attributes["sum"])
-    if loss_val < min_loss:
-        sys.exit()
-    
+        
     # get the track data
-    track_lons = fh.variables["track_longitude"][:]
-    track_lats = fh.variables["track_latitude"][:]
+    track_lons = fh.variables["track_longitude"][index]
+    track_lats = fh.variables["track_latitude"][index]
     
     # create the projection
     proj = ccrs.RotatedPole(pole_latitude=rot_latp, pole_longitude=rot_lonp)
