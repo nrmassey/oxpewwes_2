@@ -116,7 +116,7 @@ def regrid(DJFMA_fname, SON_fname, LEV):
     PMODE = "0"
     GRID_FILE = "./grids/wah_mesh_EU_L"+str(LEV)
     NC_VAR = "field8"
-    EXE_PATH=os.path.expanduser("~/Coding/tri_tracker/exe/regrid")
+    EXE_PATH=os.path.expanduser("~/tri_tracker/exe/regrid")
 
     # output file names
     DJFMA_regrid_fname = DJFMA_fname[:-3] + "_L" + str(LEV) + ".rgd"
@@ -137,7 +137,7 @@ def extrema(DJFMA_regrid_name, SON_regrid_name, LEV, EX_LEV, LS_LEV):
 
     PMODE = "0"
     GRID_FILE = "./grids/wah_mesh_EU_L"+str(LEV)
-    EXE_PATH=os.path.expanduser("~/Coding/tri_tracker/exe/extrema")
+    EXE_PATH=os.path.expanduser("~/tri_tracker/exe/extrema")
 
     # build the filenames for the geopotential height
     GPH_DJFMA_fname = (DJFMA_regrid_name[:-7] + ".nc").replace("field8", "field1")
@@ -172,7 +172,7 @@ def extrema(DJFMA_regrid_name, SON_regrid_name, LEV, EX_LEV, LS_LEV):
 
 def track(EX_DJFMA_fname, EX_SON_fname):
 
-    EXE_PATH=os.path.expanduser("~/Coding/tri_tracker/exe/track")
+    EXE_PATH=os.path.expanduser("~/tri_tracker/exe/track")
 
     # build the output filenames
     TRK_DJFMA_fname = EX_DJFMA_fname[:-3]+".trk"
@@ -194,7 +194,7 @@ def track(EX_DJFMA_fname, EX_SON_fname):
 
 def get_event_path(boinc, year):
     year = int(year)
-    output_event_path = os.path.expanduser("~/Coding/oxpewwes_2_results/ensemble/events/")
+    output_event_path = os.path.expanduser("/group_workspaces/jasmin2/cpdn_rapidwatch/OXPEWWES_2/")
     output_event_path += str(year) + "_" + str(year+1) + "/"
     output_event_path += boinc
     return output_event_path
@@ -204,8 +204,8 @@ def get_event_path(boinc, year):
 
 def events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, year):
     # Build the event footprints from the tracks and input data
-    EXE_PATH=os.path.expanduser("~/Coding/tri_tracker/exe/event_set")
-    output_event_path = os.path.expanduser("~/Coding/oxpewwes_2_results/ensemble/events/")
+    EXE_PATH=os.path.expanduser("~/tri_tracker/exe/event_set")
+    output_event_path = os.path.expanduser("/group_workspaces/jasmin2/cpdn_rapidwatch/OXPEWWES_2/")
     
     # netcdf variable names
     MSLP_VNAME = "field8"
@@ -306,7 +306,8 @@ if __name__ == "__main__":
     n_valid = 8
 
     # get the batch list
-    batch_file_name = "cpdn_batch/Batch48_1.txt"
+#    batch_file_name = "cpdn_batch/Batch48_1.txt"
+    batch_file_name = "cpdn_batch/Batch48.txt"
     batch_list = read_batch_file(batch_file_name, year)
     for b in batch_list:
         # build the urls for the batch - we want files 1->5 (Dec->Apr)
@@ -315,12 +316,15 @@ if __name__ == "__main__":
         u = urls[0]
         umid, boinc, year = get_umid_boinc_year(u)
         event_path = get_event_path(boinc, year)
+        output_path = get_output_dir(output_dir, year, boinc)
         if os.path.exists(event_path):
             continue
+        c_tmp_dir = temp_dir + "/" + umid + "_" + boinc
         try:
+#        if True:
             for u in urls:
                 # extract the data
-                extract(u, field_list, output_dir, temp_dir, n_valid)
+                extract(u, field_list, output_dir, c_tmp_dir, n_valid)
             #  concatenate the Dec->Apr files and the Sep->Nov files
             DJFMA_fname, SON_fname, output_path = concatenate(u, field_list, output_dir)
             # do the regridding
@@ -331,15 +335,14 @@ if __name__ == "__main__":
             DJFMA_track_name, SON_track_name = track(DJFMA_extrema_name, SON_extrema_name)
             # find the events, need the year and umid to form the filename
             events(DJFMA_track_name, SON_track_name, LEV, EX_LEV, LS_LEV, umid, boinc, year)
+            # delete the extracted data
+            if os.path.exists(output_path):
+                shutil.rmtree(output_path, True)
         except:
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            if os.path.exists(output_dir):
-                shutil.rmtree(output_dir)
-    
-    # clean up the temporary directory
-    if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir)
-    # remove the output path (this is not the same as the event set output path)
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
+#        else:
+            print sys.exc_info()[0]
+            if os.path.exists(c_tmp_dir):
+                shutil.rmtree(c_tmp_dir, True)
+            if os.path.exists(output_path):
+                shutil.rmtree(output_path, True)
+
