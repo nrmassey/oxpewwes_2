@@ -187,9 +187,9 @@ def extract_netcdf(zf, zf_file, base_path, field, temp_dir):
 
 def extract(url, field_list, output_dir, temp_dir, n_valid):
     # fetch the url to a temp (zip) file using urllib
-   print url
-   if True:
-#   try:
+    c_temp_name = ""
+    try:
+#    if True:
         # get the umid, boinc id and year from the url
         umid, boinc, year = get_umid_boinc_year(url)
         # make directories to hold the output
@@ -198,6 +198,8 @@ def extract(url, field_list, output_dir, temp_dir, n_valid):
         if not download:
             return
         zf_fh = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        c_temp_name = zf_fh.name
+        print c_temp_name
         urlret = urllib.urlretrieve(url, zf_fh.name)
         # open the zip
         zf = zipfile.ZipFile(zf_fh.name)
@@ -210,8 +212,12 @@ def extract(url, field_list, output_dir, temp_dir, n_valid):
                 if pattern in zf_file:
                     extract_netcdf(zf, zf_file, base_path, field, temp_dir)
         os.remove(zf_fh.name)
-   else:
-#   except:
+    except:
+#    else:
         print "Could not extract url: " + url
+        print sys.exc_info()[0]
+        if os.path.exists(c_temp_name):
+            os.remove(c_temp_name)
+        raise
 
 ###############################################################################
