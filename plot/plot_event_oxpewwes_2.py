@@ -21,6 +21,8 @@ import cartopy.crs as ccrs
 import numpy
 from netCDF4 import Dataset
 
+from get_date import get_date
+
 ###############################################################################
 
 def create_wind_color_map(levels):
@@ -142,6 +144,16 @@ if __name__ == "__main__":
     # get the track data
     track_lons = fh.variables["track_longitude"][index]
     track_lats = fh.variables["track_latitude"][index]
+    track_time = fh.variables["track_times"][index]
+    # get the ref time and calendar type
+    ref_time = track_time.units
+    ref_cal = track_time.calendar
+    start_time = get_date(track_time[0], ref_time, ref_cal)
+    end_time = get_date(track_time[-1], ref_time, ref_cal)
+    # build the title as the time period
+    title = "%04i-%02i-%02i %02i:00:00 to %04i-%02i-%02i %02i:00:00 " % \
+            (start_time[0], start_time[1], start_time[2], start_time[3],\
+             end_time[0], end_time[1], end_time[2], end_time[3])
     
     # create the projection
     proj = ccrs.RotatedPole(pole_latitude=rot_latp, pole_longitude=rot_lonp)
@@ -212,6 +224,7 @@ if __name__ == "__main__":
         sp.set_aspect(1.0)
 
     # save the figure
+    plt.suptitle(title, size=16)
     plt.gcf().set_size_inches(9,9)
     plt.tight_layout()
     plt.savefig(output_file)
