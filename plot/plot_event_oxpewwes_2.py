@@ -12,16 +12,19 @@
 #           Each plot also has the storm track on it
 ###############################################################################
 
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import matplotlib.colors as col
 import matplotlib.cm as cm
-import matplotlib
 import sys, os, getopt
 import cartopy.crs as ccrs
 import numpy
 from netCDF4 import Dataset
 
 from get_date import get_date
+from load_data import load_data
 
 ###############################################################################
 
@@ -37,7 +40,7 @@ def create_wind_color_map(levels):
 ###############################################################################
 
 def create_precip_color_map(levels):
-    # colour map for precip amount - once scaled to mm/day
+    # colour map for precip amount - once scaled to mm/hr
     cmap = ["#dddddd", "#0000ff", "#00ffff", "#ffff00", 
             "#ff0000", "#ff00ff"]
     ccmap, norm = col.from_levels_and_colors(levels, cmap, 'neither')
@@ -62,7 +65,7 @@ def create_loss_color_map(levels):
 
 ###############################################################################
 
-def plot_track(sp0, track_lons, track_lats):
+def plot_track(sp0, track_lons, track_lats, track_time=None, show_timesteps=False):
     # plot the track, first plot markers at each 6h timestep
     for i in range(0, track_lons.shape[0]):
         sp0.plot(track_lons[i], track_lats[i], 'ko', ms=3, 
@@ -80,23 +83,21 @@ def plot_track(sp0, track_lons, track_lats):
         sp0.plot((lon_0, lon_1), (track_lats[i], track_lats[i+1]),
                  'k', lw=2.0, transform=ccrs.PlateCarree())
 
-###############################################################################
+        # draw the timestep value if necessary
+        if show_timesteps:
+            disp_time = str(0.25 * int(track_time[i]*4)) + ":" + str(i)
+            sp0.text(lon_0, track_lats[i], disp_time, size='xx-small',
+                     transform=ccrs.PlateCarree())
 
-def load_scaled_data(nc_fh, var_name, index):
-    # load data that has been packed to a byte or short and scaled
-    var = nc_fh.variables[var_name]
-    # get the scale factor and offset
-    sf = var.scale_factor
-    off = var.add_offset
-    # get the missing value
-    mv = var._FillValue
-    # get the data and mask
-    D = numpy.ma.masked_equal(var[index], mv)
-    # scale and return - don't need to scale with netCDF4 libraries
-#    SD = D * sf + off
-#    print var_name, off, sf, SD.shape, numpy.min(SD), numpy.max(SD)
-    SD = D
-    return SD
+    # Draw the last timestep
+    if show_timesteps:
+        lon_0 = track_lons[-1]
+        if lon_0 > 180.0:
+            lon_0 -= 360.0
+        disp_time = str(0.25 * int(track_time[-1]*4)) + ":" + str(len(track_time)-1)
+        sp0.text(lon_0, track_lats[-1], disp_time, size='xx-small',
+                 transform=ccrs.PlateCarree())
+
 
 ###############################################################################
 
@@ -110,9 +111,10 @@ if __name__ == "__main__":
 
     input_file = ""
     output_file = ""
+    show_timesteps = False
     # get the input and output filenames
-    opts, args = getopt.getopt(sys.argv[1:], 'i:o:d:', 
-                               ['input=', 'output=', 'index='])
+    opts, args = getopt.getopt(sys.argv[1:], 'i:o:d:t', 
+                               ['input=', 'output=', 'index=', 'timesteps'])
 
     for opt, val in opts:
         if opt in ['--input', '-i']:
@@ -121,6 +123,8 @@ if __name__ == "__main__":
             output_file = val
         if opt in ['--index', '-d']:
             index = int(val)
+        if opt in ['--timesteps', '-t']:
+            show_timesteps = True
 
     if input_file == "" or output_file == "":
         print " Usage : plot_event_oxpewwes_2 -i input -o output -d index"
@@ -134,20 +138,21 @@ if __name__ == "__main__":
     rot_latp = float(rot_grid_var.grid_north_pole_latitude)
     
     # get the data
-    mslp_data = load_scaled_data(fh, "mslp", index) * 0.01
-    gust_data = load_scaled_data(fh, "wind_gust", index)
-    precip_data = load_scaled_data(fh, "precip", index) * 60.0 * 60.0  # convert to mm/hr
-    loss_data = load_scaled_data(fh, "loss", index)
+    mslp_data = load_data(fh, "mslp", index) * 0.01
+    gust_data = load_data(fh, "wind_gust", index)
+    precip_data = load_data(fh, "precip", index) * 60.0 * 60.0  # convert to mm/hr
+    loss_data = load_data(fh, "loss", index)
     lons = fh.variables["longitude"][:]
     lats = fh.variables["latitude"][:]
         
     # get the track data
     track_lons = fh.variables["track_longitude"][index]
     track_lats = fh.variables["track_latitude"][index]
-    track_time = fh.variables["track_times"][index]
+    track_time_var = fh.variables["track_time"]
+    track_time = track_time_var[index]
     # get the ref time and calendar type
-    ref_time = track_time.units
-    ref_cal = track_time.calendar
+    ref_time = track_time_var.units
+    ref_cal = track_time_var.calendar
     start_time = get_date(track_time[0], ref_time, ref_cal)
     end_time = get_date(track_time[-1], ref_time, ref_cal)
     # build the title as the time period
@@ -185,8 +190,6 @@ if __name__ == "__main__":
     # draw colorbar
     mslp_bar = plt.gcf().colorbar(mslp_map, ax = sps[0], orientation="horizontal",
                                   fraction=0.05, pad=0.04)
-#    mslp_bar.set_label("MSLP hPa")
-    
     # precip
     precip_map = sps[1].pcolormesh(lons, lats, precip_data, 
                                    cmap=precip_cmap, norm=precip_norm,
@@ -194,8 +197,6 @@ if __name__ == "__main__":
     sps[1].set_title("Precip. mm hr$^{-1}$")
     precip_bar = plt.gcf().colorbar(precip_map, ax = sps[1], orientation="horizontal",
                                     fraction=0.05, pad=0.04)
-#    precip_bar.set_label("Precip. mm hr$^{-1}$")
-
     # wind
     wind_map = sps[2].pcolormesh(lons, lats, gust_data,
                                  cmap=wind_cmap, norm=wind_norm,
@@ -203,20 +204,17 @@ if __name__ == "__main__":
     sps[2].set_title("3s wind gust (m s$^{-1}$)")
     wind_bar = plt.gcf().colorbar(wind_map, ax = sps[2], orientation="horizontal",
                                   fraction=0.05, pad=0.04)
-#    wind_bar.set_label("3s wind gust (m s$^{-1}$)")
-
+    # loss
     loss_map = sps[3].pcolormesh(lons, lats, loss_data,
                                  cmap=loss_cmap, norm=loss_norm,
                                  vmax=loss_levels[-1], vmin=loss_levels[0])
     sps[3].set_title("Est. losses")
     loss_bar = plt.gcf().colorbar(loss_map, ax = sps[3], orientation="horizontal",
                                   fraction=0.05, pad=0.04)
-#    loss_bar.set_label("Est. losses")
-    
     # draw the continents etc. on the subplots
     for sp in sps:
         # plot the track on each subplot
-        plot_track(sp, track_lons, track_lats)
+        plot_track(sp, track_lons, track_lats, track_time[:], show_timesteps)
         sp.coastlines(resolution='50m', lw=0.5, zorder=3)
         sp.gridlines()
         sp.get_axes().set_extent([-15.5, 39.0, 28.5, 72.0])
@@ -224,10 +222,13 @@ if __name__ == "__main__":
         sp.set_aspect(1.0)
 
     # save the figure
+    output_filename = output_file + "_" + "%04i-%02i-%02iT%02i_%04i-%02i-%02iT%02i" % \
+            (start_time[0], start_time[1], start_time[2], start_time[3],\
+             end_time[0], end_time[1], end_time[2], end_time[3]) + "_i" + str(index) + ".png"
     plt.suptitle(title, size=16)
     plt.gcf().set_size_inches(9,9)
-    plt.tight_layout()
-    plt.savefig(output_file)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.savefig(output_filename)
     
     # close the file
     fh.close()

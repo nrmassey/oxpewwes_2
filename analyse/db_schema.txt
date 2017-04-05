@@ -1,0 +1,34 @@
+# NRM - 06/02/2017
+# outline of database schema for storing info about the OxPEWWES 2
+# winter windstorm event set
+
+umid 			text		UM job id (4 characters)
+file_path 		text		path of event file on disk
+index			int		index into the event file for the event
+
+start_date_year 	int		start_date - has to be int due to 360 day calendar for the ensemble
+start_date_month	int		"
+start_date_day		int		"
+start_date_hour		int		"
+
+end_date_year 		int		end_date - has to be int due to 360 day calendar for the ensemble
+end_date_month		int		"
+end_date_day		int		"
+end_date_hour		int		"
+
+persistence		int		number of hours storm lasted for
+
+wind_max		float		maximum wind speed (m/s)
+wind_max_land		float		maximum wind speed over land (m/s)
+
+gust_max		float		maximum wind gust (m/s)
+gust_max_land		float		maximum wind gust over land (m/s)
+
+precip_max		float		maximum precipitation rate (mm/hour)
+precip_max_land		float		maximum precipitation rate over land (mm/hour)
+precip_sum_land         float           total precipitation over land (mm)
+
+loss_max		float		maximum loss value
+loss_sum		float		total loss value
+
+mslp_min		float		minimum mean sea-level pressure value (Pa)
